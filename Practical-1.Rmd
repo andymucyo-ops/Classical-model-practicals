@@ -1,0 +1,21 @@
+---
+title: "Classical Models Practical 1"
+author: "Isaac Ambrogetti and Andy Muchyo Nkunzimana"
+date: "2026-04-23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Solve ordinary differentiation equations numerically
+
+```{r}
+if(!require("deSolve")) install.packages("deSolve")
+library("deSolve")
+```
+
+```{r}
+
+```
