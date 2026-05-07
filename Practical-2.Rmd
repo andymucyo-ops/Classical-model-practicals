@@ -1,0 +1,64 @@
+---
+title: "Practical-2"
+output: html_document
+date: "2026-04-30"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Imports
+```{r}
+if(!require("deSolve")) install.packages("deSolve")
+library("deSolve")
+```
+
+### Lotka-Volterra model
+
+```{r}
+LV_model <- function(time, state, params){
+  N <- state["N"] #prey population 
+  P <- state["P"] # predator population
+  r <- params["r"] # prey intrinsic growth
+  gamma <- params["gamma"] # attack rate
+  m <- params["m"] # predator mortality rate
+  beta <- params["beta"] # conversion rate 
+  alpha <- params["alpha"] # coef of intraspecific competition
+  
+  dN <- (r * N) - (alpha * (N ** 2)) - (gamma * N * P)
+  dP <- (-m * P) + (beta * N * P)
+  
+  return(list(c(dN, dP)))
+}
+
+population <- c(N = 10, P = 8)
+params <- c(
+  r = 1,
+  gamma = 0.2,
+  m = 0.2,
+  beta = 0.1,
+  alpha = 0.2
+)
+
+time <- seq(0, 200, by = 1)
+out <- ode(
+  population,
+  time,
+  LV_model,
+  params
+)
+N <- out[,2]
+P <- out[,3]
+
+plot(NULL,
+     xlim = c(0, 15),
+     ylim = c(0, 15),
+     xlab = "N",
+     ylab = "P"
+)
+abline(v = params["m"]/params["beta"], col = "blue")
+abline(a = (params["r"]/params["gamma"]), b = -(params["alpha"]/params["gamma"]), col = "red")
+
+
+```

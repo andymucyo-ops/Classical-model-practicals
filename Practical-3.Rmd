@@ -1,0 +1,61 @@
+---
+title: "Practical-3"
+output: html_document
+date: "2026-05-07"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Imports
+```{r}
+if(!require("deSolve")) install.packages("deSolve")
+library("deSolve")
+```
+
+### SIR model
+```{r}
+SIR_model <- function(time, state, params){
+  S <- state["S"] # susceptible population
+  I <- state["I"] # infected population
+  alpha <- params["alpha"] # rate at which infected host leaves this class (dies or recovers)
+  beta <- params["beta"] # rate at which susceptible becomes infected (increase of infected pop)
+  K <- params["K"] # carrying capacity, max pop size of a specific population, given by r/alpha, intrinsic growth rate divided by the coeff of intraspecific competition"
+  r <- params["r"] # intrinsic growth rate of the population
+  
+  dS <- (r * (1 - (S/K))) * S - (beta * S * I)
+  dI <- (beta * S * I) - (alpha * I)
+  
+  return(list(c(dS, dI)))
+}
+```
+
+### Parameters definition
+```{r}
+state <- c(S=2, I=0.1)
+params <- c(
+  alpha=0.2,
+  beta=0.5,
+  K=2,
+  r=1
+)
+time <- seq(0, 50, by = 1)
+out <- ode(
+  state,
+  time,
+  SIR_model,
+  params
+)
+df.out <- as.data.frame(out)
+plot(
+  df.out$I~df.out$S,
+  xlab="S",
+  ylab="I",
+  #xlim=c(0, 1.5),
+  #ylim=c(0,5)
+  )
+abline(v = epid_thresh, col = "blue")
+abline(a = 1/0.5, b = (-1/(2*0.5)), col = "red")
+
+```

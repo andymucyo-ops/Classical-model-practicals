@@ -16,6 +16,42 @@ if(!require("deSolve")) install.packages("deSolve")
 library("deSolve")
 ```
 
+### Malthus model
 ```{r}
+malthus_model <- function(time, state, parameters){
+    N <- state["N"]
+    r <- parameters["r"]
+    dN <- r * N
+    return(list(dN))
+}
+
+state <- c( N = 10)
+t <- seq(0, 100, by = 1)
+r_values <- c(0.1, 0, -0.1)
+out <- list()
+
+for(i in 1:length(r_values)){
+  out[[i]] <- ode(
+      y = state,
+      times = t,
+      func = malthus_model,
+      parms = c(r = r_values[i])
+      )
+}
+
+colors <- c("blue", "red", "green")
+
+plot(1, xlab="Time", ylab="log population", xlim=c(0, 101), ylim=c(-10, 15))
+
+
+for(i in 1:length(out)){
+  lines(
+    x = out[[i]][,"time"],
+    y = log(out[[i]][,"N"]),
+    col = colors[i],
+  )
+}
 
 ```
+
+````
