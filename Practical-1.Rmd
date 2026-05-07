@@ -159,17 +159,17 @@ SIR <- function(time, state, params){
 
 t <- seq(1, 50, by=1)
 pop <- c(S = 2, I = 0.1)     # S = susceptible population, I = infected population
-r <- 1    # intrinsic growth rate of the population
 
-beta <- 0.5   # rate at which susceptible becomes infected (increase of infected pop)
-alpha <- 0.2  # rate at which infected host leaves this class (dies or recovers)
-
-k <- 2    # carrying capacity, max pop size of a specific population, given by r/alpha, 
-          # intrinsic growth rate divided by the coeff of intraspecific competition"
+params <- c(
+  alpha=0.2,  # rate at which infected host leaves this class (dies or recovers)
+  beta=0.5,   # rate at which susceptible becomes infected (increase of infected pop)
+  K=2,   # carrying capacity, max pop size of a specific population, given by r/alpha, intrinsic growth rate divided by the coeff of intraspecific competition"
+  r=1    # intrinsic growth rate of the population
+)
 
 scale <- 0.1  # scale for vector size
 
-out <- ode(pop, t, SIR, parms = c(r = r, S = s, I = i, beta = beta, alpha = alpha, K = k))
+out <- ode(pop, t, SIR, parms = params)
 df.out <- as.data.frame(out)
 ```
 
@@ -182,16 +182,55 @@ I <- seq(0.1, 8, length.out=30)
 abline(v = alpha/beta, col="blue")
 abline(a = 1/beta, b = - S/(beta*k), col = "red")
 ```
-for (p in S){
-  for (n in I){
-    n1 <- n + (r - alpha*n - gamma*p)*n * scale
-    p1 <- p + (-m + beta*n)*p * scale
-    arrows(n, p, n1, p1, length = 0.05, angle = 30, code = 2, col = "lightgreen")
-  }
-}
 
-  
-lines(df.out$N, df.out$P, type="l", col="brown")
+```{r}
+epid_thresh <- params["alpha"] / params["beta"]
+# --- Vector field grid ---
+S_seq <- seq(0.01, 2.5, length.out = 20)
+I_seq <- seq(0.01, 2.5, length.out = 20)
+grid  <- expand.grid(S = S_seq, I = I_seq)
+
+# Compute derivatives at each grid point
+dS_vec <- numeric(nrow(grid))
+dI_vec <- numeric(nrow(grid))
+for(k in seq_len(nrow(grid))){  
+  state_k <- c(S = grid$S[k], I = grid$I[k])  
+  derivs <- SIR(0, state_k, params)[[1]]  
+  dS_vec[k] <- derivs[1]  
+  dI_vec[k] <- derivs[2]
+  }
+# Normalize arrow lengths for readability
+magnitude <- sqrt(dS_vec^2 + dI_vec^2)
+scale <- 0.08  # adjust this to make arrows longer/shorter
+dS_norm <- scale * dS_vec / magnitude
+dI_norm <- scale * dI_vec / magnitude
+
+plot(
+  df.out$I~df.out$S,
+  xlab="S",
+  ylab="I",
+  #xlim=c(0, 1.5),
+  #ylim=c(0,5)
+  )
+
+arrows(  
+  x0 = grid$S,  
+  y0 = grid$I,
+  x1 = grid$S + dS_norm,
+  y1 = grid$I + dI_norm,  
+  length = 0.04, # arrowhead size 
+  col = adjustcolor("steelblue", alpha.f = 0.5),  
+  lwd = 0.8
+  )
+abline(v = epid_thresh, col = "blue")
+abline(a = 1/0.5, b = (-1/(2*0.5)), col = "red")
+legend(
+  "topright",  
+  legend = c("Trajectory", "S isocline threshold", "I isocline"),
+  col = c("black", "blue", "red"),
+  lty = c(1, 2, 2),
+  lwd    = 2
+  )
 ```
 
 
