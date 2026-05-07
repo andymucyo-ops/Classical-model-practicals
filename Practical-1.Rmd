@@ -11,11 +11,188 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Solve ordinary differentiation equations numerically
 
+### Malthus model
 ```{r}
 if(!require("deSolve")) install.packages("deSolve")
 library("deSolve")
 ```
 
 ```{r}
+malthus <- function(t, N0, parms){
+  r <- parms["r"]
+  dN <- r * N0
+  return(list(dN))
+}
 
+N0 <- 8
+t <- seq(0, 100, by=1)
+r <- c(0.1, 0, -0.1)
+
+out <- list()
+
+for (i in seq_along(r)){
+  out[[i]] <- ode(N0, t, malthus, parms = c(r = r[i]))
+}
 ```
+
+```{r}
+plot(NA, xlim = c(0, 100), ylim = c(1, max(out[[1]][,"1"])),
+     log = "y", xlab = "Time", ylab = "N(t) [log scale]", main = "Malthus Model")
+
+for (i in seq_along(r)) {
+  out[[i]] <- ode(N0, t, malthus, parms = c(r = r[i]))
+  lines(out[[i]][, "time"], out[[i]][, "1"], col = i)
+}
+
+legend("topright", legend = paste("r =", r), col = seq_along(r), lty = 1)
+```
+
+
+### Verhulst model
+
+Similar to the Malthus model but it uses the parameter K (carrying capacity) = r / alpha. 
+It is the value in population size at which the per capita growth rate is equal to zero
+and, therefore, the population stops growing. (population cap)
+
+Alpha is the coefficient of intraspecific competition: slope of the curve in absolute 
+value (-alpha is the slope).
+
+
+
+```{r}
+verhulst <- function(t, N0, parms){
+  r <- parms["r"]
+  K <- parms["k"]
+  dN <- r * N0 * (1 - N0/K)
+  return(list(dN))
+}
+
+N0 <- 8
+t <- seq(0, 100, by=1)
+r <- 0.1
+k <- c(2, 40, 100)
+
+out <- list()
+
+for (i in seq_along(k)){
+  out[[i]] <- ode(N0, t, verhulst, parms = c(r = r, k = k[i]))
+}
+```
+
+```{r}
+plot(NA, xlim = c(0, 100), ylim = c(1, 100),
+     log = "y", xlab = "Time", ylab = "N(t) [log scale]", main = "Verhulst Model")
+
+for (i in seq_along(k)) {
+  lines(out[[i]][, "time"], out[[i]][, "1"], col = i)
+}
+
+legend("topright", legend = paste("k =", k), col = seq_along(k), lty = 1)
+```
+
+### Original Lotka-Volterra model
+
+```{r}
+LV <- function(t, pop, parms){
+  r <- parms["r"]
+  gamma <- parms["gamma"]
+  m <- parms["m"]
+  beta <- parms["beta"]
+  alpha <- parms["alpha"]
+  
+  dN <- (r - alpha*pop["N"] - gamma*pop["P"])*pop["N"]
+  dP <- (-m + beta*pop["N"]) * pop["P"]
+  return(list(c(dN, dP)))
+}
+
+t <- seq(1, 200, by=1)
+pop <- c(N = 10, P = 8)
+r <- 1
+gamma <- 0.2
+m <- 0.2
+beta <- 0.1
+alpha <- 0.2
+scale <- 0.1
+
+out <- ode(pop, t, LV, parms = c(r = r, gamma = gamma, m = m, beta = beta, alpha = alpha))
+df.out <- as.data.frame(out)
+```
+
+```{r}
+plot(NULL,xlim=c(0, 8), ylim=c(0, 10), xlab="N", ylab="P")
+
+abline(a = r/gamma, b = - (alpha/gamma), col="blue")
+abline(v = m/beta, col = "red")
+
+N <- seq(0.1, 5, length.out=30)
+P <- seq(0.1, 8, length.out=30)
+
+for (p in P){
+  for (n in N){
+    n1 <- n + (r - alpha*n - gamma*p)*n * scale
+    p1 <- p + (-m + beta*n)*p * scale
+    arrows(n, p, n1, p1, length = 0.05, angle = 30, code = 2, col = "lightgreen")
+  }
+}
+  
+lines(df.out$N, df.out$P, type="l", col="brown")
+```
+
+
+
+### Original Kermack-McKendrick’s SIR epidemic model
+
+```{r}
+SIR <- function(time, state, params){
+  S <- state["S"] 
+  I <- state["I"] 
+  alpha <- params["alpha"] 
+  beta <- params["beta"] 
+  K <- params["K"] 
+  r <- params["r"] 
+  
+  dS <- (r * (1 - (S/K))) * S - (beta * S * I)
+  dI <- (beta * S * I) - (alpha * I)
+  
+  return(list(c(dS, dI)))
+}
+
+t <- seq(1, 50, by=1)
+pop <- c(S = 2, I = 0.1)     # S = susceptible population, I = infected population
+r <- 1    # intrinsic growth rate of the population
+
+beta <- 0.5   # rate at which susceptible becomes infected (increase of infected pop)
+alpha <- 0.2  # rate at which infected host leaves this class (dies or recovers)
+
+k <- 2    # carrying capacity, max pop size of a specific population, given by r/alpha, 
+          # intrinsic growth rate divided by the coeff of intraspecific competition"
+
+scale <- 0.1  # scale for vector size
+
+out <- ode(pop, t, SIR, parms = c(r = r, S = s, I = i, beta = beta, alpha = alpha, K = k))
+df.out <- as.data.frame(out)
+```
+
+```{r}
+plot(df.out$I~df.out$S, xlab="S", ylab="I")
+
+S <- seq(0.1, 5, length.out=30)
+I <- seq(0.1, 8, length.out=30)
+
+abline(v = alpha/beta, col="blue")
+abline(a = 1/beta, b = - S/(beta*k), col = "red")
+```
+for (p in S){
+  for (n in I){
+    n1 <- n + (r - alpha*n - gamma*p)*n * scale
+    p1 <- p + (-m + beta*n)*p * scale
+    arrows(n, p, n1, p1, length = 0.05, angle = 30, code = 2, col = "lightgreen")
+  }
+}
+
+  
+lines(df.out$N, df.out$P, type="l", col="brown")
+```
+
+
+
