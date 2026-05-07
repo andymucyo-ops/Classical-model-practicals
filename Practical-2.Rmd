@@ -61,4 +61,5 @@ abline(v = params["m"]/params["beta"], col = "blue")
 abline(a = (params["r"]/params["gamma"]), b = -(params["alpha"]/params["gamma"]), col = "red")
 
 
+
 ```

@@ -40,6 +40,7 @@ params <- c(
   K=2,
   r=1
 )
+
 time <- seq(0, 50, by = 1)
 out <- ode(
   state,
@@ -47,7 +48,28 @@ out <- ode(
   SIR_model,
   params
 )
+epid_thresh <- params["alpha"] / params["beta"]  # = 0.4
+# --- Vector field grid ---
+S_seq <- seq(0.01, 2.5, length.out = 20)
+I_seq <- seq(0.01, 2.5, length.out = 20)
+grid  <- expand.grid(S = S_seq, I = I_seq)
+
+# Compute derivatives at each grid point
+dS_vec <- numeric(nrow(grid))
+dI_vec <- numeric(nrow(grid))
+for(k in seq_len(nrow(grid))){  
+  state_k <- c(S = grid$S[k], I = grid$I[k])  
+  derivs <- SIR_model(0, state_k, params)[[1]]  
+  dS_vec[k] <- derivs[1]  
+  dI_vec[k] <- derivs[2]
+  }
+# Normalize arrow lengths for readability
+magnitude <- sqrt(dS_vec^2 + dI_vec^2)
+scale <- 0.08  # adjust this to make arrows longer/shorter
+dS_norm <- scale * dS_vec / magnitude
+dI_norm <- scale * dI_vec / magnitude
 df.out <- as.data.frame(out)
+
 plot(
   df.out$I~df.out$S,
   xlab="S",
@@ -55,7 +77,24 @@ plot(
   #xlim=c(0, 1.5),
   #ylim=c(0,5)
   )
+
+arrows(  
+  x0 = grid$S,  
+  y0 = grid$I,
+  x1 = grid$S + dS_norm,
+  y1 = grid$I + dI_norm,  
+  length = 0.04, # arrowhead size 
+  col = adjustcolor("steelblue", alpha.f = 0.5),  
+  lwd = 0.8
+  )
 abline(v = epid_thresh, col = "blue")
 abline(a = 1/0.5, b = (-1/(2*0.5)), col = "red")
+legend(
+  "topright",  
+  legend = c("Trajectory", "S nullcline threshold", "I nullcline"),
+  col = c("black", "blue", "red"),
+  lty = c(1, 2, 2),
+  lwd    = 2
+  )
 
 ```
